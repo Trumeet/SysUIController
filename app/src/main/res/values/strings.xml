@@ -1,0 +1,42 @@
+<resources>
+    <string name="app_name">SysUIController</string>
+    <string name="app_title">System UI Control α</string>
+    <string name="main_service_status">Service Status</string>
+    <string name="main_service_status_summary">Service must be started to apply your settings, tap to check or start (ROOT)</string>
+    <string name="status_starting">Starting</string>
+    <string name="status_stopping">Stopping</string>
+    <string name="status_started">Running, tap to stop</string>
+
+    <string name="about_title">Version info</string>
+    <string name="about_view_in_play_store">View in Google Play Store</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_copyright">Author yuuta.moe</string>
+
+    <string name="error_can_not_open_shell">Can not have ROOT access</string>
+    <string name="error_can_not_start">Can not start service, please read system logs (tag "SysUIController") and feedback</string>
+
+    <string name="additional_key">Additional support item by your device</string>
+    <string name="not_available">Your device doesn\'t support this feature</string>
+
+    <string name="main_status_bar">Status Bar</string>
+    <string name="disable_expand">Disable expanding</string>
+    <string name="disable_system_info">Hide system icons</string>
+    <string name="disable_clock">Hide clock icon</string>
+    <string name="main_notification">Notifications</string>
+    <string name="disable_notification_icons">Hide notification icons</string>
+    <string name="disable_notification_alerts">Disable notification alerts and floating</string>
+    <string name="disable_notification_ticker">Hide notification tickers</string>
+    <string name="main_navigation_bar">Navigation Bar</string>
+    <string name="disable_navigation">Hide navigation bar buttons</string>
+    <string name="disable_home">Hide home button</string>
+    <string name="disable_recent">Hide recent button</string>
+    <string name="disable_back">Hide back button</string>
+    <string name="disable_search">Disable searching (e.g. Assistant)</string>
+    <string name="main_quick_settings">Quick Settings</string>
+    <string name="disable_quick_settings">Remove quick settings</string>
+    <string name="disable_system_icons">Hide system icons (method 2)</string>
+    <string name="disable_notification_shade">Disable notification shade</string>
+    <string name="main_other">Others</string>
+    <string name="disable_global_actions">Disable global actions (e.g. Power menu)</string>
+    <string name="disable_rotate_suggestions">Hide rotate icon</string>
+</resources>

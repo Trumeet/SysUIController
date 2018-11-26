@@ -1,0 +1,50 @@
+apply plugin: 'com.android.application'
+apply plugin: "androidx.navigation.safeargs"
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'io.fabric'
+apply plugin: 'com.google.android.gms.oss-licenses-plugin'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "moe.yuuta.sysuicontroller"
+        minSdkVersion 21
+        targetSdkVersion 28
+        versionCode 1
+        versionName "0.1 α"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'com.google.firebase:firebase-core:16.0.5'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.1.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0'
+    implementation 'eu.chainfire:librootjava:1.0.0'
+    implementation 'eu.chainfire:libsuperuser:1.0.0.+'
+    implementation 'eu.chainfire:librootjavadaemon:1.0.0'
+    implementation 'moe.shizuku.preference:preference:3.0.0'
+    implementation 'moe.shizuku.preference:preference-dialog-android:3.0.0'
+    implementation 'moe.shizuku.preference:preference-simplemenu:3.0.0'
+    def nav_version = "1.0.0-alpha07"
+    implementation "android.arch.navigation:navigation-fragment:$nav_version"
+    implementation "android.arch.navigation:navigation-ui:$nav_version"
+    implementation 'com.crashlytics.sdk.android:crashlytics:2.9.6'
+    implementation "android.arch.work:work-runtime:1.0.0-alpha11"
+    implementation 'com.google.android.gms:play-services-oss-licenses:16.0.1'
+    compileOnly project(':hiddenapi')
+}

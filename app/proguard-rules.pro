@@ -1,0 +1,1 @@
+-obfuscationdictionary dic.txt

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:key="key_service_status"
+        android:title="@string/main_service_status"
+        android:summary="@string/main_service_status_summary" />
+
+    <PreferenceCategory
+        android:key="key_status_bar"
+        android:title="@string/main_status_bar"
+        android:enabled="false">
+        <SwitchPreference
+            android:key="disable_expand"
+            android:title="@string/disable_expand"/>
+        <SwitchPreference
+            android:key="disable_system_info"
+            android:title="@string/disable_system_info"/>
+        <SwitchPreference
+            android:key="disable2_system_icons"
+            android:title="@string/disable_system_icons"/>
+        <SwitchPreference
+            android:key="disable_clock"
+            android:title="@string/disable_clock"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="key_notification"
+        android:title="@string/main_notification"
+        android:enabled="false">
+        <SwitchPreference
+            android:key="disable_notification_icons"
+            android:title="@string/disable_notification_icons"/>
+        <SwitchPreference
+            android:key="disable_notification_alerts"
+            android:title="@string/disable_notification_alerts"/>
+        <SwitchPreference
+            android:key="disable_notification_ticker"
+            android:title="@string/disable_notification_ticker"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="key_navigation_bar"
+        android:title="@string/main_navigation_bar"
+        android:enabled="false">
+        <SwitchPreference
+            android:key="disable_navigation"
+            android:title="@string/disable_navigation"/>
+        <SwitchPreference
+            android:key="disable_home"
+            android:title="@string/disable_home"/>
+        <SwitchPreference
+            android:key="disable_recent"
+            android:title="@string/disable_recent"/>
+        <SwitchPreference
+            android:key="disable_back"
+            android:title="@string/disable_back"/>
+        <SwitchPreference
+            android:key="disable_search"
+            android:title="@string/disable_search"/>
+        <SwitchPreference
+            android:key="disable2_rotate_suggestions"
+            android:title="@string/disable_rotate_suggestions"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="key_quick_settings"
+        android:title="@string/main_quick_settings"
+        android:enabled="false">
+        <SwitchPreference
+            android:key="disable2_quick_settings"
+            android:title="@string/disable_quick_settings"/>
+        <SwitchPreference
+            android:key="disable2_notification_shade"
+            android:title="@string/disable_notification_shade"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="key_other"
+        android:title="@string/main_other"
+        android:enabled="false">
+        <SwitchPreference
+            android:key="disable2_global_actions"
+            android:title="@string/disable_global_actions"/>
+    </PreferenceCategory>
+</PreferenceScreen>
