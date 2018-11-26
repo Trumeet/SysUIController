@@ -10,8 +10,8 @@ android {
         applicationId "moe.yuuta.sysuicontroller"
         minSdkVersion 21
         targetSdkVersion 28
-        versionCode 1
-        versionName "0.1 α"
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
