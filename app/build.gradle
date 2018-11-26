@@ -3,6 +3,7 @@ apply plugin: "androidx.navigation.safeargs"
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'io.fabric'
 apply plugin: 'com.google.android.gms.oss-licenses-plugin'
+apply plugin: 'com.google.firebase.firebase-perf'
 
 android {
     compileSdkVersion 28
@@ -46,5 +47,6 @@ dependencies {
     implementation 'com.crashlytics.sdk.android:crashlytics:2.9.6'
     implementation "android.arch.work:work-runtime:1.0.0-alpha11"
     implementation 'com.google.android.gms:play-services-oss-licenses:16.0.1'
+    implementation 'com.google.firebase:firebase-perf:16.2.0'
     compileOnly project(':hiddenapi')
 }

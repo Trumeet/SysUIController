@@ -17,6 +17,9 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity;
+import com.google.firebase.perf.FirebasePerformance;
+import com.google.firebase.perf.metrics.AddTrace;
+import com.google.firebase.perf.metrics.Trace;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -111,14 +114,22 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
             for (PreferenceGroup group : mGroupsShouldBeDisabledBeforeServer) {
                 group.setEnabled(enable);
             }
+            Trace traceClear = FirebasePerformance.getInstance().newTrace("traceClear");
+            traceClear.start();
+            traceClear.putMetric("disable_map_size", mDisableMap.size());
+            traceClear.putMetric("disable2_map_size", mDisable2Map.size());
             for (int i = 0; i < mDisableMap.size(); i ++) getPreferenceScreen().removePreference(mDisableMap.valueAt(i));
             for (int i = 0; i < mDisable2Map.size(); i ++) getPreferenceScreen().removePreference(mDisable2Map.valueAt(i));
             mDisable2Map.clear();
             mDisableMap.clear();
+            traceClear.stop();
             if (enable) {
                 try {
                     List<DisableItem> available = mService.getAvailableDisableItems();
                     Log.d(TAG, "Available disable items: " + available.toString());
+                    Trace traceDisplayAvailableItems = FirebasePerformance.getInstance().newTrace("traceDisplayAvailableItems");
+                    traceDisplayAvailableItems.start();
+                    traceDisplayAvailableItems.putMetric("available_item_size", available.size());
                     Set<String /* Name (key) */> showedKeys = new HashSet<>(available.size());
                     for (DisableItem item : available) {
                         showedKeys.add(item.getKey().toLowerCase());
@@ -136,14 +147,21 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
                         if (item.isDisable2()) mDisable2Map.put(item.getFlag(), preference);
                         mDisableMap.put(item.getFlag(), preference);
                     }
+                    traceDisplayAvailableItems.stop();
 
                     // Disable not supported prebuilt preferences
+                    Trace traceSetNotAvailableBatch = FirebasePerformance.getInstance().newTrace("traceSetNotAvailableBatch");
+                    traceSetNotAvailableBatch.start();
+                    traceSetNotAvailableBatch.putMetric("showed_keys", showedKeys.size());
                     Log.d(TAG, "Showed items: " + showedKeys.toString());
                     setNotAvailableBatch(showedKeys, getPreferenceScreen());
+                    traceSetNotAvailableBatch.stop();
                 } catch (Exception e) {
                     Log.e(TAG, "Read available disable items", e);
                 }
                 SharedPreferences preferences = requireContext().getSharedPreferences("flags", Context.MODE_PRIVATE);
+                Trace traceUpdateUIDisabled = FirebasePerformance.getInstance().newTrace("traceUpdateUIDisabled");
+                traceUpdateUIDisabled.start();
                 try {
                     mService.disable(preferences.getInt("disable_flags", mService.getDisableNoneFlag(false)));
                     updateUIDisabled(false, mService.getDisableFlags());
@@ -157,6 +175,7 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
                 } catch (RemoteException e) {
                     Log.e(TAG, "Receive disable2 flags", e);
                 }
+                traceUpdateUIDisabled.stop();
             }
 
             if (mStatusPreference != null) {
@@ -246,6 +265,7 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
     }
 
     @Override
+    @AddTrace(name = "MainFragment#onCreatePreferences")
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.main_settings, rootKey);
         mStatusPreference = findPreference("key_service_status");
