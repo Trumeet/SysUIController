@@ -6,7 +6,7 @@ import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.perf.FirebasePerformance;
 
 public class Main extends Application {
-    public static final String GLOBAL_TAG = "SysUIController";
+    public static final String GLOBAL_TAG = "UIC";
 
     @Override
     public void onCreate() {

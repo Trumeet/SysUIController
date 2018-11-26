@@ -13,7 +13,7 @@
     <string name="about_copyright">Author yuuta.moe</string>
 
     <string name="error_can_not_open_shell">Can not have ROOT access</string>
-    <string name="error_can_not_start">Can not start service, please read system logs (tag "SysUIController") and feedback</string>
+    <string name="error_can_not_start">Can not start service, please read system logs (tag "UIC") and feedback</string>
 
     <string name="additional_key">Additional support item by your device</string>
     <string name="not_available">Your device doesn\'t support this feature</string>
