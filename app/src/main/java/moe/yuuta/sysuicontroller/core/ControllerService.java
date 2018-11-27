@@ -3,6 +3,7 @@ package moe.yuuta.sysuicontroller.core;
 import android.annotation.SuppressLint;
 import android.app.StatusBarManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Binder;
 import android.os.Looper;
 import android.os.RemoteException;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import eu.chainfire.librootjava.IPCBroadcastHelper;
 import eu.chainfire.librootjava.RootIPC;
 import eu.chainfire.librootjava.RootJava;
 import eu.chainfire.librootjavadaemon.RootDaemon;
@@ -32,12 +34,13 @@ public class ControllerService extends IStatusController.Stub {
     public static final int CODE_SERVICE = 0;
     private StatusBarManager mManager;
     private Context mContext;
+    private Intent mKeepWakeUpIntent;
 
     public static void main (String... args) throws Throwable {
         new ControllerService().run(args);
     }
 
-    @SuppressLint("WrongConstant")
+    @SuppressLint({"WrongConstant", "MissingPermission"})
     private void run (String... args) throws Throwable {
         Looper.prepare();
         mContext = RootJava.getSystemContext();
@@ -46,15 +49,19 @@ public class ControllerService extends IStatusController.Stub {
         RootJava.restoreOriginalLdLibraryPath();
         RootDaemon.register(BuildConfig.APPLICATION_ID, this, CODE_SERVICE);
         Log.i(TAG, "Started at " + new Date().toString());
+        RootIPC rootIPC;
         try {
-            new RootIPC(BuildConfig.APPLICATION_ID, this, CODE_SERVICE,
+            rootIPC = new RootIPC(BuildConfig.APPLICATION_ID, this, CODE_SERVICE,
                     10 * 1000,
                     true);
         } catch (RootIPC.TimeoutException e) {
             Log.e(TAG, "Unable to establish a connection, exiting", e);
             throw e;
         }
+        mKeepWakeUpIntent = IPCBroadcastHelper.buildStickyBroadcastIntent(rootIPC);
+        mContext.sendStickyBroadcast(mKeepWakeUpIntent);
         RootDaemon.run();
+        // Will be removed from exit() binder call, because this part may not be called.
         Log.i(TAG, "Stopped at " + new Date().toString());
     }
 
@@ -63,9 +70,11 @@ public class ControllerService extends IStatusController.Stub {
                 Binder.getCallingPid(), Binder.getCallingUid(), "Permission denial");
     }
 
-    @Override
+    @SuppressLint("MissingPermission")
+    @Override // Binder call
     public void exit () throws RemoteException {
         enforcePermission();
+        mContext.removeStickyBroadcast(mKeepWakeUpIntent);
         RootDaemon.exit();
     }
 
