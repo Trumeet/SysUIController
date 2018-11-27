@@ -16,6 +16,8 @@
 
 package android.app;
 
+import com.android.internal.statusbar.IStatusBarService;
+
 /**
  * Allows an app to control the status bar.
  *
@@ -75,6 +77,10 @@ public class StatusBarManager {
     public static int CAMERA_LAUNCH_SOURCE_WIGGLE;
     public static int CAMERA_LAUNCH_SOURCE_POWER_DOUBLE_TAP;
     public static int CAMERA_LAUNCH_SOURCE_LIFT_TRIGGER;
+
+    private synchronized IStatusBarService getService() {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * Disable some features in the status bar.  Pass the bitwise-or of the DISABLE_* flags.

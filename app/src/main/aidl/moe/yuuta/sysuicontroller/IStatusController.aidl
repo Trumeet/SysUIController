@@ -11,7 +11,7 @@ interface IStatusController {
     void expandNotificationsPanel ();
     void collapsePanels ();
     void expandSettingsPanel (in String subPanel);
-    void setIcon(in String slot, int iconId, int iconLevel, in String contentDescription);
+    void setIcon(in String slot, in String packageName, int iconId, int iconLevel, in String contentDescription);
     void removeIcon(in String slot);
     void setIconVisibility(in String slot, boolean visible);
 

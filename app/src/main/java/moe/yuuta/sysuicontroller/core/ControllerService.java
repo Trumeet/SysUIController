@@ -9,7 +9,10 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.android.internal.statusbar.IStatusBarService;
+
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,9 +38,15 @@ public class ControllerService extends IStatusController.Stub {
     private StatusBarManager mManager;
     private Context mContext;
     private Intent mKeepWakeUpIntent;
+    private IStatusBarService mService;
 
     public static void main (String... args) throws Throwable {
-        new ControllerService().run(args);
+        try {
+            new ControllerService().run(args);
+        } catch (Throwable throwable) {
+            Log.e(TAG, "FETAL EXCEPTION during init", throwable);
+            System.exit(throwable.hashCode());
+        }
     }
 
     @SuppressLint({"WrongConstant", "MissingPermission"})
@@ -45,6 +54,9 @@ public class ControllerService extends IStatusController.Stub {
         Looper.prepare();
         mContext = RootJava.getSystemContext();
         mManager = (StatusBarManager) mContext.getSystemService("statusbar");
+        @SuppressLint("PrivateApi") Method mGetService = StatusBarManager.class.getDeclaredMethod("getService");
+        mGetService.setAccessible(true);
+        mService = (IStatusBarService) mGetService.invoke(mManager);
         RootDaemon.daemonize(BuildConfig.APPLICATION_ID, CODE_SERVICE);
         RootJava.restoreOriginalLdLibraryPath();
         RootDaemon.register(BuildConfig.APPLICATION_ID, this, CODE_SERVICE);
@@ -111,9 +123,9 @@ public class ControllerService extends IStatusController.Stub {
     }
 
     @Override
-    public void setIcon(String slot, int iconId, int iconLevel, String contentDescription) throws RemoteException {
+    public void setIcon(String slot, String packageName, int iconId, int iconLevel, String contentDescription) throws RemoteException {
         enforcePermission();
-        mManager.setIcon(slot, iconId, iconLevel, contentDescription);
+        mService.setIcon(slot, packageName, iconId, iconLevel, contentDescription);
     }
 
     @Override
