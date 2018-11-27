@@ -232,7 +232,7 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.add(0, 0, 0, com.google.android.gms.oss.licenses.R.string.oss_license_title);
-        menu.add(0, 1, 0, R.string.about_view_in_play_store);
+        menu.add(0, 1, 0, R.string.about_view_in_github);
         menu.add(0, 2, 0, R.string.about_title);
     }
 
@@ -244,7 +244,7 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
                 return true;
             case 1:
                 try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + BuildConfig.APPLICATION_ID))
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Trumeet/SysUIController_Releases"))
                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 } catch (ActivityNotFoundException ignored) {}
                 return true;
