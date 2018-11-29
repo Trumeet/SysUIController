@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import androidx.annotation.Nullable;
 import eu.chainfire.librootjava.IPCBroadcastHelper;
 import eu.chainfire.librootjava.RootIPC;
 import eu.chainfire.librootjava.RootJava;
@@ -152,9 +151,7 @@ public class ControllerService extends IStatusController.Stub {
     public int getDisableFlags() throws RemoteException {
         enforcePermission();
         // Deserialize at first
-        int systemFlag = deserializeDisableFlag(false);
-        if (systemFlag != -1)
-            return systemFlag;
+        deserialize();
         return disableFlags;
     }
 
@@ -162,13 +159,11 @@ public class ControllerService extends IStatusController.Stub {
     public int getDisable2Flags() throws RemoteException {
         enforcePermission();
         // Deserialize at first
-        int systemFlag = deserializeDisableFlag(true);
-        if (systemFlag != -1)
-            return systemFlag;
+        deserialize();
         return disable2Flags;
     }
 
-    private @Nullable StatusBarServiceDumpDeserializer deserialize () {
+    private void deserialize () {
         StatusBarServiceDumpDeserializer deserializer = new StatusBarServiceDumpDeserializer();
         try {
             StringBuilder builder = new StringBuilder();
@@ -179,19 +174,11 @@ public class ControllerService extends IStatusController.Stub {
             String result = builder.toString();
             if (BuildConfig.DEBUG) Log.d(TAG, "Result: " + result);
             deserializer.deserialize(result);
+            if (deserializer.getDisable1() != -1) disableFlags = deserializer.getDisable1();
+            if (deserializer.getDisable2() != -1) disable2Flags = deserializer.getDisable2();
         } catch (Exception e) {
             Log.e(TAG, "Error when deserialize status bar service", e);
-            return null;
         }
-        return deserializer;
-    }
-
-    private int deserializeDisableFlag (boolean disable2) {
-        StatusBarServiceDumpDeserializer deserializer = deserialize();
-        if (deserializer == null) return -1;
-        int result = disable2 ? deserializer.getDisable2() : deserializer.getDisable1();
-        Log.i(TAG, "Deserialize from system" + (disable2 ? "(2)": "(1)") + ": " + result);
-        return result;
     }
 
     @Override
