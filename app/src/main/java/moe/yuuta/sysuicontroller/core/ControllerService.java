@@ -86,7 +86,11 @@ public class ControllerService extends IStatusController.Stub {
     @Override // Binder call
     public void exit () throws RemoteException {
         enforcePermission();
-        mContext.removeStickyBroadcast(mKeepWakeUpIntent);
+        try {
+            mContext.removeStickyBroadcast(mKeepWakeUpIntent);
+        } catch (Throwable e) {
+            Log.e(TAG, "Unable to remove sticky broadcast", e);
+        }
         RootDaemon.exit();
     }
 

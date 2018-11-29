@@ -321,7 +321,7 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
                 } else {
                     try {
                         mService.exit();
-                    } catch (RemoteException ignored) {
+                    } catch (Throwable ignored) {
                     }
                 }
                 return true;
