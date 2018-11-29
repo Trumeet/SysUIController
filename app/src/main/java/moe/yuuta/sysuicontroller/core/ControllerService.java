@@ -19,12 +19,15 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import androidx.annotation.Nullable;
 import eu.chainfire.librootjava.IPCBroadcastHelper;
 import eu.chainfire.librootjava.RootIPC;
 import eu.chainfire.librootjava.RootJava;
 import eu.chainfire.librootjavadaemon.RootDaemon;
+import eu.chainfire.libsuperuser.Shell;
 import moe.yuuta.sysuicontroller.BuildConfig;
 import moe.yuuta.sysuicontroller.IStatusController;
+import moe.yuuta.sysuicontroller.dump.StatusBarServiceDumpDeserializer;
 
 import static moe.yuuta.sysuicontroller.Main.GLOBAL_TAG;
 
@@ -52,6 +55,7 @@ public class ControllerService extends IStatusController.Stub {
     @SuppressLint({"WrongConstant", "MissingPermission"})
     private void run (String... args) throws Throwable {
         Looper.prepare();
+        Log.i(TAG, "Version: " + BuildConfig.VERSION_CODE);
         mContext = RootJava.getSystemContext();
         mManager = (StatusBarManager) mContext.getSystemService("statusbar");
         @SuppressLint("PrivateApi") Method mGetService = StatusBarManager.class.getDeclaredMethod("getService");
@@ -87,7 +91,7 @@ public class ControllerService extends IStatusController.Stub {
     public void exit () throws RemoteException {
         enforcePermission();
         try {
-            mContext.removeStickyBroadcast(mKeepWakeUpIntent);
+            if (mKeepWakeUpIntent != null) mContext.removeStickyBroadcast(mKeepWakeUpIntent);
         } catch (Throwable e) {
             Log.e(TAG, "Unable to remove sticky broadcast", e);
         }
@@ -147,13 +151,47 @@ public class ControllerService extends IStatusController.Stub {
     @Override
     public int getDisableFlags() throws RemoteException {
         enforcePermission();
+        // Deserialize at first
+        int systemFlag = deserializeDisableFlag(false);
+        if (systemFlag != -1)
+            return systemFlag;
         return disableFlags;
     }
 
     @Override
     public int getDisable2Flags() throws RemoteException {
         enforcePermission();
+        // Deserialize at first
+        int systemFlag = deserializeDisableFlag(true);
+        if (systemFlag != -1)
+            return systemFlag;
         return disable2Flags;
+    }
+
+    private @Nullable StatusBarServiceDumpDeserializer deserialize () {
+        StatusBarServiceDumpDeserializer deserializer = new StatusBarServiceDumpDeserializer();
+        try {
+            StringBuilder builder = new StringBuilder();
+            for (String res : Shell.SH.run(Collections.singletonList("dumpsys statusbar"))) {
+                builder.append(res);
+                builder.append("\n");
+            }
+            String result = builder.toString();
+            if (BuildConfig.DEBUG) Log.d(TAG, "Result: " + result);
+            deserializer.deserialize(result);
+        } catch (Exception e) {
+            Log.e(TAG, "Error when deserialize status bar service", e);
+            return null;
+        }
+        return deserializer;
+    }
+
+    private int deserializeDisableFlag (boolean disable2) {
+        StatusBarServiceDumpDeserializer deserializer = deserialize();
+        if (deserializer == null) return -1;
+        int result = disable2 ? deserializer.getDisable2() : deserializer.getDisable1();
+        Log.i(TAG, "Deserialize from system" + (disable2 ? "(2)": "(1)") + ": " + result);
+        return result;
     }
 
     @Override
