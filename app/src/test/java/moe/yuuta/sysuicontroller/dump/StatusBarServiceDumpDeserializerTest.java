@@ -3,7 +3,13 @@ package moe.yuuta.sysuicontroller.dump;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+
+import moe.yuuta.sysuicontroller.core.StatusBarIcon;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class StatusBarServiceDumpDeserializerTest {
     private StatusBarServiceDumpDeserializer mDeserializer;
@@ -35,5 +41,15 @@ public class StatusBarServiceDumpDeserializerTest {
     @Test
     public void testGetDisable2() {
         assertEquals(0x0, mDeserializer.getDisable2());
+    }
+
+    @Test
+    public void testGetIcons () {
+        List<StatusBarIcon> icons = mDeserializer.getIcons();
+        assertNotNull(icons);
+        assertEquals(2, icons.size());
+        assertArrayEquals(new StatusBarIcon[]{
+                new StatusBarIcon("deo-1", "RESOURCE", "moe.yuuta.sysuicontroller", 0x7f070077, 1, true, 0, null),
+                new StatusBarIcon("deo-2", "RESOURCE", "moe.yuuta.sysuicontroller", 0x7f070078, 1, true, 0, null) }, icons.toArray());
     }
 }
