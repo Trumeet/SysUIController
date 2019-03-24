@@ -5,13 +5,14 @@ import android.content.SharedPreferences;
 import android.os.RemoteException;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.work.Worker;
+import androidx.work.WorkerParameters;
+
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import androidx.annotation.NonNull;
-import androidx.work.Worker;
-import androidx.work.WorkerParameters;
 import eu.chainfire.librootjava.RootIPCReceiver;
 import eu.chainfire.librootjavadaemon.RootDaemon;
 import eu.chainfire.libsuperuser.Shell;
@@ -71,6 +72,6 @@ public class AutoStartWorker extends Worker {
         mReceiver.release();
         shell.kill(); // Kill the process, will make it idle and it won't kill the forked process
         shell.close();
-        return Result.SUCCESS;
+        return Result.success();
     }
 }

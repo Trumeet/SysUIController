@@ -60,7 +60,7 @@ public class ControllerService extends IStatusController.Stub {
         @SuppressLint("PrivateApi") Method mGetService = StatusBarManager.class.getDeclaredMethod("getService");
         mGetService.setAccessible(true);
         mService = (IStatusBarService) mGetService.invoke(mManager);
-        RootDaemon.daemonize(BuildConfig.APPLICATION_ID, CODE_SERVICE);
+        RootDaemon.daemonize(BuildConfig.APPLICATION_ID, CODE_SERVICE, false, null);
         RootJava.restoreOriginalLdLibraryPath();
         RootDaemon.register(BuildConfig.APPLICATION_ID, this, CODE_SERVICE);
         Log.i(TAG, "Started at " + new Date().toString());
