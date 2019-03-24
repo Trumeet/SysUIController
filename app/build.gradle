@@ -5,6 +5,10 @@ apply plugin: 'io.fabric'
 apply plugin: 'com.google.android.gms.oss-licenses-plugin'
 apply plugin: 'com.google.firebase.firebase-perf'
 
+def privateProperties = new Properties()
+def conf = project.file("private.properties")
+if (conf.exists()) privateProperties.load(conf.newDataInputStream())
+
 android {
     compileSdkVersion 28
     defaultConfig {
@@ -15,8 +19,28 @@ android {
         versionName rootProject.ext.versionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        general {
+            def locate = privateProperties['key.locate']
+            def keystorePwd = privateProperties['key.store.pwd']
+            def alias = privateProperties['key.alias']
+            def pwd = privateProperties['key.pwd']
+            storeFile file(locate != null ? locate : project.rootProject.file(".yuuta.jks"))
+            storePassword keystorePwd != null ?
+                    keystorePwd : System.getenv("KEYSTORE_PASS")
+            keyAlias alias != null ?
+                    alias : System.getenv("ALIAS_NAME")
+            keyPassword pwd != null ?
+                    pwd : System.getenv("ALIAS_PASS")
+            v2SigningEnabled true
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.general
+        }
         release {
+            signingConfig signingConfigs.general
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -48,5 +72,4 @@ dependencies {
     implementation "android.arch.work:work-runtime:1.0.0"
     implementation 'com.google.android.gms:play-services-oss-licenses:16.0.2'
     implementation 'com.google.firebase:firebase-perf:16.2.4'
-    // compileOnly project(':hiddenapi')
 }

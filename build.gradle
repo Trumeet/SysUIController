@@ -38,3 +38,11 @@ ext {
     versionName = "0.${gitCommitCount} α"
     versionCode = Integer.parseInt("${gitCommitCount}")
 }
+
+task exportVersion(type: Exec) {
+    commandLine 'sh'
+    doLast {
+        file("$projectDir/version.txt").text = """$version"""
+        file("$projectDir/version_code.txt").text = """${gitCommitCount}"""
+    }
+}
