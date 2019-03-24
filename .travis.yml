@@ -17,8 +17,8 @@ script:
 before_install:
 - yes | sdkmanager "platforms;android-28"
 - wget https://github.com/anggrayudi/android-hidden-api/files/2709802/android.zip
-- rm ~/Android/Sdk/platforms/android-28/android.jar
-- mv ./android.zip ~/Android/Sdk/platforms/android-28/android.jar
+- rm /usr/local/android-sdk/platforms/android-28/android.jar
+- mv ./android.zip /usr/local/android-sdk/platforms/android-28/android.jar
 - chmod a+x gradlew
 - openssl aes-256-cbc -K $encrypted_87dd0b6bf67f_key -iv $encrypted_87dd0b6bf67f_iv -in secrets.tar.enc -out ./secrets.tar -d
 - tar xvf secrets.tar
