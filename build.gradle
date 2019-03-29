@@ -33,9 +33,10 @@ task clean(type: Delete) {
 }
 
 def gitCommitCount = 'git rev-list --count HEAD'.execute([], project.rootDir).text.trim()
+def version = "0.${gitCommitCount} a"
 
 ext {
-    versionName = "0.${gitCommitCount} α"
+    versionName = version
     versionCode = Integer.parseInt("${gitCommitCount}")
 }
 
