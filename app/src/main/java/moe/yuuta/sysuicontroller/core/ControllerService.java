@@ -1,6 +1,7 @@
 package moe.yuuta.sysuicontroller.core;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityThread;
 import android.app.StatusBarManager;
 import android.content.Context;
 import android.content.Intent;
@@ -55,7 +56,7 @@ public class ControllerService extends IStatusController.Stub {
     private void run (String... args) throws Throwable {
         Looper.prepare();
         Log.i(TAG, "Version: " + BuildConfig.VERSION_CODE);
-        mContext = RootJava.getSystemContext();
+        mContext = ActivityThread.systemMain().getSystemContext();
         mManager = (StatusBarManager) mContext.getSystemService("statusbar");
         @SuppressLint("PrivateApi") Method mGetService = StatusBarManager.class.getDeclaredMethod("getService");
         mGetService.setAccessible(true);
