@@ -1,4 +1,4 @@
-package moe.yuuta.sysuicontroller.core;
+package moe.yuuta.sysuicontroller.core.root;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityThread;
@@ -27,6 +27,8 @@ import eu.chainfire.librootjavadaemon.RootDaemon;
 import eu.chainfire.libsuperuser.Shell;
 import moe.yuuta.sysuicontroller.BuildConfig;
 import moe.yuuta.sysuicontroller.IStatusController;
+import moe.yuuta.sysuicontroller.core.CoreUtils;
+import moe.yuuta.sysuicontroller.core.DisableItem;
 import moe.yuuta.sysuicontroller.dump.StatusBarServiceDumpDeserializer;
 
 import static moe.yuuta.sysuicontroller.Main.GLOBAL_TAG;
@@ -165,7 +167,6 @@ public class ControllerService extends IStatusController.Stub {
     }
 
     private void deserialize () {
-        StatusBarServiceDumpDeserializer deserializer = new StatusBarServiceDumpDeserializer();
         try {
             StringBuilder builder = new StringBuilder();
             for (String res : Shell.SH.run(Collections.singletonList("dumpsys statusbar"))) {
@@ -173,12 +174,11 @@ public class ControllerService extends IStatusController.Stub {
                 builder.append("\n");
             }
             String result = builder.toString();
-            if (BuildConfig.DEBUG) Log.d(TAG, "Result: " + result);
-            deserializer.deserialize(result);
+            StatusBarServiceDumpDeserializer deserializer = CoreUtils.deserialize(result);
             if (deserializer.getDisable1() != -1) disableFlags = deserializer.getDisable1();
             if (deserializer.getDisable2() != -1) disable2Flags = deserializer.getDisable2();
         } catch (Exception e) {
-            Log.e(TAG, "Error when deserialize status bar service", e);
+            Log.e(TAG, "Error when dumping status bar service", e);
         }
     }
 

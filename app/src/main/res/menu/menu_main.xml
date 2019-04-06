@@ -1,0 +1,24 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:title="@string/mode">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item android:id="@+id/action_mode_shizuku"
+                    android:title="@string/mode_shizuku" />
+                <item android:id="@+id/action_mode_root"
+                    android:title="@string/mode_root" />
+            </group>
+        </menu>
+    </item>
+    <item android:title="@string/about">
+        <menu>
+            <group>
+                <item android:id="@+id/action_version"
+                    android:title="@string/about_title" />
+                <item android:id="@+id/action_view"
+                    android:title="@string/about_view_in_github" />
+                <item android:id="@+id/action_oss"
+                    android:title="@string/oss_license_title" />
+            </group>
+        </menu>
+    </item>
+</menu>

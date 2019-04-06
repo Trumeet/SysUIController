@@ -18,7 +18,7 @@ import eu.chainfire.librootjavadaemon.RootDaemon;
 import eu.chainfire.libsuperuser.Shell;
 import moe.yuuta.sysuicontroller.BuildConfig;
 import moe.yuuta.sysuicontroller.IStatusController;
-import moe.yuuta.sysuicontroller.core.ControllerService;
+import moe.yuuta.sysuicontroller.core.root.ControllerService;
 
 public class AutoStartWorker extends Worker {
     private static final String TAG = AutoStartWorker.class.getSimpleName();

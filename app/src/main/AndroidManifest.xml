@@ -7,6 +7,11 @@
     <permission android:name="${applicationId}.SERVICE"
         android:protectionLevel="signature|privileged" />
     <uses-permission android:name="${applicationId}.SERVICE" />
+    <uses-permission
+        android:name="moe.shizuku.manager.permission.API"
+        android:maxSdkVersion="23" />
+    <uses-permission-sdk-23 android:name="moe.shizuku.manager.permission.API_V23" />
+    <uses-permission-sdk-23 android:name="moe.shizuku.manager.permission.EXEC_COMMAND" />
     <application
         android:name=".Main"
         android:allowBackup="true"
@@ -30,6 +35,13 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <provider
+            android:name="moe.shizuku.api.BinderReceiveProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
     </application>
 
 </manifest>

@@ -1,5 +1,7 @@
 package moe.yuuta.sysuicontroller;
 
+import android.annotation.SuppressLint;
+import android.app.StatusBarManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -14,7 +16,10 @@ import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity;
 import com.google.firebase.perf.FirebasePerformance;
@@ -26,64 +31,44 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import eu.chainfire.librootjava.RootIPCReceiver;
-import eu.chainfire.librootjavadaemon.RootDaemon;
-import eu.chainfire.libsuperuser.Shell;
 import moe.shizuku.preference.Preference;
 import moe.shizuku.preference.PreferenceCategory;
 import moe.shizuku.preference.PreferenceFragment;
 import moe.shizuku.preference.PreferenceGroup;
 import moe.shizuku.preference.SwitchPreference;
 import moe.yuuta.sysuicontroller.about.VersionDialogFragment;
-import moe.yuuta.sysuicontroller.core.ControllerService;
+import moe.yuuta.sysuicontroller.core.Controller;
+import moe.yuuta.sysuicontroller.core.ControllerFactory;
+import moe.yuuta.sysuicontroller.core.CoreUtils;
 import moe.yuuta.sysuicontroller.core.DisableItem;
+import moe.yuuta.sysuicontroller.core.IController;
+import moe.yuuta.sysuicontroller.core.shizuku.ShizukuController;
 
 import static moe.yuuta.sysuicontroller.Main.GLOBAL_TAG;
 
-public class MainFragment extends PreferenceFragment implements Preference.OnPreferenceClickListener, Shell.OnCommandResultListener {
+public class MainFragment extends PreferenceFragment implements Preference.OnPreferenceClickListener, IController.Callback {
     private static final String TAG = GLOBAL_TAG + ".MainFragment";
-
-    private static final String ARG_SERVICE = MainFragment.class.getName() + ".ARG_SERVICE";
-    private static final int CODE_START = 1;
-
-    private Shell.Interactive mShell;
-    private volatile IStatusController mService;
 
     private Preference mStatusPreference;
     private SparseArray<SwitchPreference> mDisableMap;
     private SparseArray<SwitchPreference> mDisable2Map;
     private List<PreferenceGroup> mGroupsShouldBeDisabledBeforeServer = new ArrayList<>(3);
-
-    private RootIPCReceiver<IStatusController> mReceiver = new RootIPCReceiver<IStatusController>(null, ControllerService.CODE_SERVICE) {
-        @Override
-        public void onConnect(IStatusController ipc) {
-            Log.d(TAG, "Connected to remote service");
-            mService = ipc;
-            postStatusUpdate();
-        }
-
-        @Override
-        public void onDisconnect(IStatusController ipc) {
-            Log.d(TAG, "Disconnected to remote service");
-            mService = ipc;
-            postStatusUpdate();
-        }
-    };
+    private Controller mController;
+    // When it's true, the activity will be automatically recreated after the next successful status update.
+    private volatile boolean mIsSwitchModeScheduled = false;
 
     private void serializeDisableFlags () {
-        if (obtainService() == null) return;
+        if (!mController.isServiceReady()) return;
         SharedPreferences.Editor editor = requireContext().getSharedPreferences("flags", Context.MODE_PRIVATE)
                 .edit();
         try {
-            int disableFlags = mService.getDisableFlags();
+            int disableFlags = mController.getDisableFlags();
             editor.putInt("disable_flags", disableFlags);
         } catch (RemoteException e) {
             Log.e(TAG, "Receive disable flags", e);
         }
         try {
-            int disable2Flags = mService.getDisable2Flags();
+            int disable2Flags = mController.getDisable2Flags();
             editor.putInt("disable2_flags", disable2Flags);
         } catch (RemoteException e) {
             Log.e(TAG, "Receive disable2 flags", e);
@@ -109,8 +94,10 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
     private void postStatusUpdate () {
         new Handler(Looper.getMainLooper()).post(() -> {
             Log.d(TAG, "Start update status");
-            obtainService();
-            boolean enable = mService != null;
+            boolean enable = mController.isServiceReady();
+            if (enable && !mController.canStop()) {
+                mStatusPreference.setVisible(false);
+            }
             for (PreferenceGroup group : mGroupsShouldBeDisabledBeforeServer) {
                 group.setEnabled(enable);
             }
@@ -124,54 +111,50 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
             mDisableMap.clear();
             traceClear.stop();
             if (enable) {
-                try {
-                    List<DisableItem> available = mService.getAvailableDisableItems();
-                    Log.d(TAG, "Available disable items: " + available.toString());
-                    Trace traceDisplayAvailableItems = FirebasePerformance.getInstance().newTrace("traceDisplayAvailableItems");
-                    traceDisplayAvailableItems.start();
-                    traceDisplayAvailableItems.putMetric("available_item_size", available.size());
-                    Set<String /* Name (key) */> showedKeys = new HashSet<>(available.size());
-                    for (DisableItem item : available) {
-                        showedKeys.add(item.getKey().toLowerCase());
-                        SwitchPreference preference = (SwitchPreference) findPreference(item.getKey().toLowerCase());
-                        if (preference == null) {
-                            // Create a new one for special keys
-                            preference = new SwitchPreference(requireContext(), null, moe.shizuku.preference.R.attr.switchPreferenceStyle,
-                                    R.style.Preference_SwitchPreference);
-                            preference.setKey(item.getKey().toLowerCase());
-                            preference.setTitle(item.getKey());
-                            preference.setSummary(R.string.additional_key);
-                            ((PreferenceCategory) findPreference("key_other")).addPreference(preference);
-                        }
-                        preference.setOnPreferenceChangeListener((p, newValue) -> runDisable(item.getFlag(), (Boolean) newValue, item.getKey(), item.isDisable2()));
-                        if (item.isDisable2()) mDisable2Map.put(item.getFlag(), preference);
-                        mDisableMap.put(item.getFlag(), preference);
+                List<DisableItem> available = CoreUtils.getAvailableDisableItems();
+                Log.d(TAG, "Available disable items: " + available.toString());
+                Trace traceDisplayAvailableItems = FirebasePerformance.getInstance().newTrace("traceDisplayAvailableItems");
+                traceDisplayAvailableItems.start();
+                traceDisplayAvailableItems.putMetric("available_item_size", available.size());
+                Set<String /* Name (key) */> showedKeys = new HashSet<>(available.size());
+                for (DisableItem item : available) {
+                    showedKeys.add(item.getKey().toLowerCase());
+                    SwitchPreference preference = (SwitchPreference) findPreference(item.getKey().toLowerCase());
+                    if (preference == null) {
+                        // Create a new one for special keys
+                        preference = new SwitchPreference(requireContext(), null, moe.shizuku.preference.R.attr.switchPreferenceStyle,
+                                R.style.Preference_SwitchPreference);
+                        preference.setKey(item.getKey().toLowerCase());
+                        preference.setTitle(item.getKey());
+                        preference.setSummary(R.string.additional_key);
+                        ((PreferenceCategory) findPreference("key_other")).addPreference(preference);
                     }
-                    traceDisplayAvailableItems.stop();
-
-                    // Disable not supported prebuilt preferences
-                    Trace traceSetNotAvailableBatch = FirebasePerformance.getInstance().newTrace("traceSetNotAvailableBatch");
-                    traceSetNotAvailableBatch.start();
-                    traceSetNotAvailableBatch.putMetric("showed_keys", showedKeys.size());
-                    Log.d(TAG, "Showed items: " + showedKeys.toString());
-                    setNotAvailableBatch(showedKeys, getPreferenceScreen());
-                    traceSetNotAvailableBatch.stop();
-                } catch (Exception e) {
-                    Log.e(TAG, "Read available disable items", e);
+                    preference.setOnPreferenceChangeListener((p, newValue) -> runDisable(item.getFlag(), (Boolean) newValue, item.getKey(), item.isDisable2()));
+                    if (item.isDisable2()) mDisable2Map.put(item.getFlag(), preference);
+                    mDisableMap.put(item.getFlag(), preference);
                 }
+                traceDisplayAvailableItems.stop();
+
+                // Disable not supported prebuilt preferences
+                Trace traceSetNotAvailableBatch = FirebasePerformance.getInstance().newTrace("traceSetNotAvailableBatch");
+                traceSetNotAvailableBatch.start();
+                traceSetNotAvailableBatch.putMetric("showed_keys", showedKeys.size());
+                Log.d(TAG, "Showed items: " + showedKeys.toString());
+                setNotAvailableBatch(showedKeys, getPreferenceScreen());
+                traceSetNotAvailableBatch.stop();
                 SharedPreferences preferences = requireContext().getSharedPreferences("flags", Context.MODE_PRIVATE);
                 Trace traceUpdateUIDisabled = FirebasePerformance.getInstance().newTrace("traceUpdateUIDisabled");
                 traceUpdateUIDisabled.start();
                 try {
-                    mService.disable(preferences.getInt("disable_flags", mService.getDisableNoneFlag(false)));
-                    updateUIDisabled(false, mService.getDisableFlags());
+                    mController.disable(preferences.getInt("disable_flags", StatusBarManager.DISABLE_NONE));
+                    updateUIDisabled(false, mController.getDisableFlags());
                 } catch (RemoteException e) {
                     Log.e(TAG, "Receive disable flags", e);
                 }
 
                 try {
-                    mService.disable2(preferences.getInt("disable2_flags", mService.getDisableNoneFlag(true)));
-                    updateUIDisabled(true, mService.getDisableFlags());
+                    mController.disable2(preferences.getInt("disable2_flags", StatusBarManager.DISABLE2_NONE));
+                    updateUIDisabled(true, mController.getDisableFlags());
                 } catch (RemoteException e) {
                     Log.e(TAG, "Receive disable2 flags", e);
                 }
@@ -202,55 +185,58 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        mReceiver.setContext(requireContext());
-        mService = mReceiver.getIPC();
+        mController = ControllerFactory.create(this, this);
+        postStatusUpdate();
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        runRestoreBinder(savedInstanceState);
-    }
-
-    private void runRestoreBinder (@Nullable Bundle savedInstanceState) {
-        if (BuildConfig.DEBUG) {
-            if (savedInstanceState == null) {
-                Log.d(TAG, "savedInstanceState is null");
-            } else {
-                if (savedInstanceState.getBinder(ARG_SERVICE) == null)
-                    Log.d(TAG, "savedInstanceState doesn't contain binder");
-                else
-                    Log.d(TAG, "Restoring");
-            }
-        }
-        if (savedInstanceState != null && savedInstanceState.getBinder(ARG_SERVICE) != null) {
-            // FIXME: 11/25/18 The restoried interface's binder not alive
-            mService = IStatusController.Stub.asInterface(savedInstanceState.getBinder(ARG_SERVICE));
-        }
+        mController.restoreStatus(savedInstanceState);
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        menu.add(0, 0, 0, com.google.android.gms.oss.licenses.R.string.oss_license_title);
-        menu.add(0, 1, 0, R.string.about_view_in_github);
-        menu.add(0, 2, 0, R.string.about_title);
+        inflater.inflate(R.menu.menu_main, menu);
+        List<String> availableModes = ControllerFactory.getSupportedControllers(requireContext());
+        if (!availableModes.contains(ControllerFactory.ID_ROOT)) menu.findItem(R.id.action_mode_root).setEnabled(false);
+        if (!availableModes.contains(ControllerFactory.ID_SHIZUKU)) menu.findItem(R.id.action_mode_shizuku).setEnabled(false);
+        switch (ControllerFactory.getUserChoice(this)) {
+            case ControllerFactory.ID_ROOT:
+                menu.findItem(R.id.action_mode_root).setChecked(true);
+                break;
+            case ControllerFactory.ID_SHIZUKU:
+                menu.findItem(R.id.action_mode_shizuku).setChecked(true);
+                break;
+        }
     }
 
+    @SuppressLint("RestrictedApi")
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case 0:
+            case R.id.action_oss:
                 startActivity(new Intent(getActivity(), OssLicensesMenuActivity.class));
                 return true;
-            case 1:
+            case R.id.action_view:
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Trumeet/SysUIController_Releases"))
                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 } catch (ActivityNotFoundException ignored) {}
                 return true;
-            case 2:
+            case R.id.action_version:
                 new VersionDialogFragment()
                         .show(getChildFragmentManager(), "Version");
+                return true;
+            case R.id.action_mode_shizuku:
+                ControllerFactory.set(requireContext(), ControllerFactory.ID_SHIZUKU);
+                mIsSwitchModeScheduled = true;
+                mStatusPreference.performClick();
+                return true;
+            case R.id.action_mode_root:
+                ControllerFactory.set(requireContext(), ControllerFactory.ID_ROOT);
+                mIsSwitchModeScheduled = true;
+                mStatusPreference.performClick();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -258,9 +244,7 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
 
     @Override
     public void onDestroy() {
-        mReceiver.release();
-        // Shell will be closed immediately after executing.
-        if (mShell != null) mShell.close();
+        mController.destroy();
         super.onDestroy();
     }
 
@@ -280,19 +264,19 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
     }
 
     private boolean runDisable (int flag, boolean enable, String name, boolean disable2) {
-        if (obtainService() == null) return false;
+        if (!mController.isServiceReady()) return false;
         Log.i(TAG, "runDisable: " + flag + " " + enable + " (" + name + ") " + disable2);
         try {
-            int flags = disable2 ? mService.getDisable2Flags() : mService.getDisableFlags();
+            int flags = disable2 ? mController.getDisable2Flags() : mController.getDisableFlags();
             if (enable) {
                 flags |= flag;
             } else {
                 flags ^= flag;
             }
             if (disable2) {
-                mService.disable2(flags);
+                mController.disable2(flags);
             } else {
-                mService.disable(flags);
+                mController.disable(flags);
             }
             serializeDisableFlags();
             return true;
@@ -311,18 +295,20 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
     public boolean onPreferenceClick(Preference preference) {
         switch (preference.getKey()) {
             case "key_service_status": {
-                boolean shouldStart = obtainService() == null;
-                mStatusPreference.setEnabled(false);
-                mStatusPreference.setSummary(shouldStart ? R.string.status_starting : R.string.status_stopping);
-                if (shouldStart) {
-                    mShell = new Shell.Builder()
-                            .useSU()
-                            .open(this); // Will start after shell opening
-                } else {
-                    try {
-                        mService.exit();
-                    } catch (Throwable ignored) {
+                if (mController.canStop()) {
+                    boolean shouldStart = !mController.isServiceReady();
+                    Log.d(TAG, "sS: " + shouldStart);
+                    mStatusPreference.setEnabled(false);
+                    mStatusPreference.setSummary(shouldStart ? R.string.status_starting : R.string.status_stopping);
+                    if (shouldStart) {
+                        mController.startAsync();
+                    } else {
+                        mController.stopSync();
                     }
+                } else if (mIsSwitchModeScheduled) {
+                    // Revert only if the user is switching mode and the current mode doesn't support stopping.
+                    mController.revert();
+                    update(null);
                 }
                 return true;
             }
@@ -331,48 +317,45 @@ public class MainFragment extends PreferenceFragment implements Preference.OnPre
     }
 
     @Override
-    public void onCommandResult(int commandCode, int exitCode, List<String> output) {
-        Log.i(TAG, "Result " + commandCode + ": " + exitCode);
-        if (output != null) {
-            Log.w(TAG, output.toString());
-        }
-        switch (commandCode) {
-            case SHELL_RUNNING:
-                if (exitCode != 0) {
-                    Toast.makeText(getContext(), R.string.error_can_not_open_shell, Toast.LENGTH_LONG).show();
-                    postStatusUpdate(); // Return status to not started
-                    break;
-                }
-                mShell.addCommand(RootDaemon.getLaunchScript(requireContext(),
-                        ControllerService.class,
-                        null,
-                        null,
-                        null, BuildConfig.APPLICATION_ID + ":daemon"),
-                        CODE_START, this);
-                break;
-            case CODE_START:
-                // Kill process immediately
-                mShell.kill();
-                mShell.close();
-                mShell = null;
-                if (exitCode != 0) Toast.makeText(getContext(), R.string.error_can_not_start, Toast.LENGTH_LONG).show();
-                break;
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mController.saveStatus(outState);
+    }
+
+    @Override
+    public void update(@Nullable Throwable e) {
+        postStatusUpdate();
+        if (e != null) {
+            new AlertDialog.Builder(requireContext())
+                    .setMessage(e.getClass().getName() + ": " + e.getMessage())
+                    .setPositiveButton(android.R.string.ok, null)
+                    .setCancelable(false)
+                    .show();
+        } else {
+            if (mIsSwitchModeScheduled) {
+                requireActivity().recreate();
+                mIsSwitchModeScheduled = false;
+            }
         }
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        if (obtainService() != null)
-            outState.putBinder(ARG_SERVICE, mService.asBinder());
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d(TAG, "onActivityResult");
+        if (mController != null && mController.controller() instanceof ShizukuController) {
+            if (((ShizukuController) mController.controller()).onActivityResult(requestCode, resultCode, data))
+                return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private IStatusController obtainService () {
-        if (!mReceiver.isConnected()) { // TODO: Add instance state support
-            mService = null;
-            return null;
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        Log.d(TAG, "onRequestPermissionsResult");
+        if (mController != null && mController.controller() instanceof ShizukuController) {
+            if (((ShizukuController) mController.controller()).onRequestPermissionsResult(requestCode, permissions, grantResults))
+                return;
         }
-        mService = mReceiver.getIPC();
-        return mService;
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }
